@@ -8,18 +8,41 @@ terraform {
 
 provider "docker" {}
 
-module "container1" {
+# Step 1: Define variable (Requirement 1)
+variable "container_config" {
+  default = [
+    {
+      name = "web1"
+      port = 8081
+    },
+    {
+      name = "web2"
+      port = 8082
+    },
+    {
+      name = "web3"
+      port = 8083
+    }
+  ]
+}
+
+# Step 2: Use loop (for_each) → dynamic creation
+module "containers" {
   source = "./modules/nginx_container"
 
-  container_name = "nginx1"
-  container_port = 8081
+  for_each = {
+    for c in var.container_config : c.name => c
+  }
+
+  container_name = each.value.name
+  container_port = each.value.port
   image_name     = "nginx:latest"
 }
 
-module "container2" {
-  source = "./modules/nginx_container"
-
-  container_name = "nginx2"
-  container_port = 8082
-  image_name     = "nginx:latest"
+# Step 3: Output URLs (Requirement)
+output "container_urls" {
+  value = [
+    for c in var.container_config :
+    "http://localhost:${c.port}"
+  ]
 }
